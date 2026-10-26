@@ -1,6 +1,12 @@
 # E16 → Omarchy
 
-Bring classic Enlightenment E16 themes to Omarchy, including their **original bitmap window decorations**.
+**Classic frames. Fresh desktop.** Bring Enlightenment E16 themes to Omarchy with their **original bitmap window decorations**.
+
+![E16 to Omarchy: browse classic themes, preview original window frames, and apply them from the topbar](docs/assets/e16toomarchy-demo.gif)
+
+**Browse → Preview → Apply.** [Get the topbar picker](#topbar-theme-picker) · [Watch the MP4](docs/assets/e16toomarchy-demo.mp4) · [Still preview](docs/assets/e16toomarchy-demo-poster.png)
+
+*Rendered feature showcase using original BrushedMetal, Aqua and AlienConsole artwork. [Credits and reproduction](docs/marketing.md).*
 
 The Python converter exports a color palette, wallpapers, and an inert description of E16's frame parts. The C++ Hyprland plugin renders those original assets around real windows: textured titlebars, custom buttons, active/inactive/hover/pressed states, transparent shapes, and resize borders. A native Omarchy topbar picker handles browsing, previewing, conversion and activation in the background. An offline preview tool uses the same rendering code as the plugin.
 
