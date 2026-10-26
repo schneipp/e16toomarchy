@@ -280,7 +280,7 @@ class Links(HTMLParser):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Convert E16 themes into Omarchy colors, wallpapers and original bitmap window frames.")
+    parser = argparse.ArgumentParser(prog="e16toomarchy", description="Convert E16 themes into Omarchy colors, wallpapers and original bitmap window frames.")
     sub = parser.add_subparsers(dest="command", required=True)
     installer = sub.add_parser("install-picker", help="Install and enable the Omarchy topbar theme picker")
     installer.add_argument("--no-enable", action="store_true", help="Install without changing the bar layout")

@@ -9,6 +9,10 @@ The picker is a user-owned Quickshell bar-widget plugin with a `qs.Ui.KeyboardPa
 - `e16toomarchy/picker.py`: catalog/cache, detached jobs, conversion, native compilation, installation, activation and restoration.
 - `e16toomarchy/picker_install.py`: independent runtime, shell plugin installation and bar enablement through Omarchy's commands.
 
+## Installation
+
+The recommended setup is the [one-command installer](install.md). It installs missing Arch build packages through Omarchy, sets up Python, checks the running compositor and its exact header commit, prebuilds the native plugin, and then enables this widget. It also installs an independent `e16toomarchy` command under `~/.local/bin` and saves source assets needed to reinstall the picker without a checkout.
+
 ## User flow
 
 The catalog is fetched when the popup first opens and cached for 24 hours. Refresh is explicit. Visible rows fetch gallery screenshots lazily in batches of at most twelve with two workers. The selected theme has its own quick screenshot request. Results stream into the UI as each image arrives. The backend validates and reduces each screenshot into a small list thumbnail and an 800×600-bounded gallery preview, both local JPEGs. Gallery image requests do not acquire the conversion/apply job lock, and browsing does not download theme archives. Per-image locks avoid duplicate downloads across workers/monitors.
@@ -40,11 +44,11 @@ The normal XDG locations are used for picker files:
 
 Omarchy's theme commands use its standard HOME-based theme paths; use the standard Omarchy layout. The picker does not alter packaged files under `/usr/share/omarchy`.
 
-`hyprland.lua.e16-backup-*` and `shell.json.e16-backup-*` preserve the configuration before the picker's respective edits. The plugin can be updated by rerunning `e16toomarchy install-picker` from an updated source checkout. The installer places UI files under a content-specific `ui-<hash>/` entry point so Qt loads changed QML, models and translations immediately instead of retaining a previous component URL. Its installed runtime does not depend on keeping that checkout or its virtual environment.
+`hyprland.lua.e16-backup-*` and `shell.json.e16-backup-*` preserve the configuration before the picker's respective edits. The recommended update path is rerunning the curl installer. From a source checkout, update the checkout and rerun `e16toomarchy install-picker`. The installer places UI files under a content-specific `ui-<hash>/` entry point so Qt loads changed QML, models and translations immediately instead of retaining a previous component URL. Its installed runtime does not depend on keeping that checkout or its virtual environment.
 
 ## Recovery
 
-A failure is displayed in the popup; invalid or unsupported theme formats do not become active. Cached unsupported image warnings remain in `conversion.json`. A build failure names the missing tool/header or incompatible compositor. The current native adapter supports Hyprland 0.56.2 only; system dependencies must already be installed.
+A failure is displayed in the popup; invalid or unsupported theme formats do not become active. Cached unsupported image warnings remain in `conversion.json`. A build failure names the missing tool/header or incompatible compositor. The current native adapter supports Hyprland 0.56.2 only. The one-command installer handles missing system dependencies; manual source installations require those dependencies to be present.
 
 Use **Restore previous look** to disable the generated integration. The harmless loader remains in the main config. Then disable the bar widget if desired:
 

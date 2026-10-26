@@ -4,13 +4,27 @@
 
 ![E16 to Omarchy: browse classic themes, preview original window frames, and apply them from the topbar](docs/assets/e16toomarchy-demo.gif)
 
-**Browse → Preview → Apply.** [Get the topbar picker](#topbar-theme-picker) · [Watch the MP4](docs/assets/e16toomarchy-demo.mp4) · [Still preview](docs/assets/e16toomarchy-demo-poster.png)
+**Browse → Preview → Apply.** [Install in one command](#one-command-install) · [Watch the MP4](docs/assets/e16toomarchy-demo.mp4) · [Still preview](docs/assets/e16toomarchy-demo-poster.png)
 
 *Rendered feature showcase using original BrushedMetal, Aqua and AlienConsole artwork. [Credits and reproduction](docs/marketing.md).*
 
 The Python converter exports a color palette, wallpapers, and an inert description of E16's frame parts. The C++ Hyprland plugin renders those original assets around real windows: textured titlebars, custom buttons, active/inactive/hover/pressed states, transparent shapes, and resize borders. A native Omarchy topbar picker handles browsing, previewing, conversion and activation in the background. An offline preview tool uses the same rendering code as the plugin.
 
-## Install the converter
+## One-command install
+
+Run this in your Omarchy terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/schneipp/e16toomarchy/main/install.sh | sh
+```
+
+That’s it. Click the **palette icon in your topbar**, choose a theme, and click **Apply**.
+
+The installer handles missing build packages through Omarchy, creates an isolated Python environment, builds the native renderer and decoration plugin, installs the converter command, and enables the picker. It asks for sudo only when system packages are missing. Your active theme stays unchanged until you apply one. **Run the same command again to update.**
+
+Requires Omarchy with **Hyprland 0.56.2**; matching headers are checked automatically. The installer does not upgrade your compositor. [Installer options and details](docs/install.md).
+
+## Manual converter install (optional)
 
 Requires Python 3.11+ and Pillow.
 
@@ -37,7 +51,7 @@ Output defaults to `converted/<theme-name>/`. Existing output is never overwritt
 
 ## Topbar theme picker
 
-After installing the converter from this checkout, run:
+The one-command installer above sets this up automatically. If you’re working from a source checkout, you can also run:
 
 ```sh
 .venv/bin/e16toomarchy install-picker
@@ -49,11 +63,11 @@ Choose **Window frames only** to keep your current colors and wallpaper. **Origi
 
 Jobs run in detached workers and keep going if the popup closes or the shell reloads. The UI shows progress and errors. The catalog refreshes on demand and is cached for a day. Gallery screenshots load for visible rows and the selected theme, with at most two batch download workers, and are cached as small local JPEGs. Browsing does not download or convert theme archives; that happens only on **Apply** or **Converted frame**. Missing screenshots do not prevent applying a theme. Previews and converted themes are reused. Downloads use the fixed HTTPS catalog, and source configuration is never executed.
 
-Installation creates an independent Python environment and builds the frame preview renderer. It requires internet for Pillow on the first install, plus the native build dependencies below. The Hyprland adapter still requires **0.56.2 with matching development headers**. It does not install system packages or use sudo. Installation adds the topbar button but does not change the active theme.
+The picker uses an independent Python environment. The one-command installer handles build packages and prebuilds decorations; the source-checkout command expects the build dependencies below to be present. Both require internet for Pillow on the first install and **Hyprland 0.56.2 with matching headers**. Installing adds the topbar button without applying a theme.
 
 On the first Apply, the picker backs up `~/.config/hypr/hyprland.lua` and adds a small loader for its own generated integration. This makes decorations survive login and configuration reloads. The integration removes native border/rounding and disables hyprbars only while E16 frames are selected. A full theme selection follows the current Omarchy theme; selecting an ordinary theme disables that integration on reload. Failed activation restores the preceding integration and palette.
 
-The install command is also the update command after updating the source checkout. `--no-enable` installs without changing the bar layout. To move or hide the button:
+Rerun the one-command installer to update. For a source checkout, update the checkout and rerun `install-picker`. `--no-enable` installs without changing the bar layout. To move or hide the button:
 
 ```sh
 omarchy bar move schneipp.e16-themes --section centerEnd

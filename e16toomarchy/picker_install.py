@@ -7,13 +7,14 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
 import time
 import venv
 
-from .picker import PLUGIN_ID, VERSION, backup, lock_fd, paths, run_command
+from .picker import PLUGIN_ID, VERSION, backup, ensure_native, lock_fd, paths, run_command
 
 
 def version_ui(stage):
@@ -35,7 +36,30 @@ def version_ui(stage):
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
 
-def install(source=None, enable=True):
+def install_cli(runtime, bin_dir=None):
+    """Expose the independent runtime without depending on a checkout or bootstrap venv."""
+    entry = runtime / "converter.py"
+    entry.write_text('''import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from e16toomarchy.cli import main
+main()
+''')
+    bin_dir = Path(bin_dir or Path.home() / ".local/bin")
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    launcher = bin_dir / "e16toomarchy"
+    marker = "# Managed by e16toomarchy"
+    if launcher.exists() or launcher.is_symlink():
+        if launcher.is_symlink() or marker not in launcher.read_text(errors="replace"):
+            print(f"Keeping the existing command at {launcher}", flush=True)
+            return None
+    launcher.write_text("#!/bin/sh\n" + marker + "\nexec " + shlex.quote(str(runtime / "venv/bin/python"))
+                        + " " + shlex.quote(str(entry)) + ' "$@"\n')
+    launcher.chmod(0o755)
+    return launcher
+
+
+def install(source=None, enable=True, build_native=False):
     source = Path(source or Path(__file__).resolve().parents[1]).resolve()
     for required in ("omarchy-plugin/manifest.json", "plugin/frame.hpp", "plugin/plugin.cpp", "Makefile"):
         if not (source / required).is_file():
@@ -54,7 +78,7 @@ def install(source=None, enable=True):
         if dependency.returncode:
             print("Installing Pillow in the picker environment…", flush=True)
             run_command([python, "-m", "pip", "install", "--disable-pip-version-check", "Pillow>=10"], timeout=180)
-        for folder in ("e16toomarchy", "plugin"):
+        for folder in ("e16toomarchy", "plugin", "omarchy-plugin"):
             stage = runtime / ("." + folder + "-next")
             if stage.exists():
                 shutil.rmtree(stage)
@@ -63,8 +87,9 @@ def install(source=None, enable=True):
             if old.exists():
                 shutil.rmtree(old)
             stage.rename(old)
-        shutil.copy2(source / "Makefile", runtime / "Makefile")
-        shutil.copy2(source / "LICENSE", runtime / "LICENSE")
+        for filename in ("Makefile", "LICENSE"):
+            if (source / filename).resolve() != (runtime / filename).resolve():
+                shutil.copy2(source / filename, runtime / filename)
         (runtime / "backend.py").write_text('''# Installed e16toomarchy runtime entry point.
 import sys
 from pathlib import Path
@@ -72,10 +97,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e16toomarchy.picker import main
 main()
 ''')
-        print("Building the frame preview renderer…", flush=True)
-        process = subprocess.run(["make", "preview"], cwd=runtime, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
-        if process.returncode:
-            raise RuntimeError(process.stdout[-1800:])
+        if build_native:
+            print("Building decorations for the running Hyprland…", flush=True)
+            ensure_native(lambda stage: print("Building the native renderer…", flush=True))
+        else:
+            print("Building the frame preview renderer…", flush=True)
+            process = subprocess.run(["make", "preview"], cwd=runtime, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
+            if process.returncode:
+                raise RuntimeError(process.stdout[-1800:])
+        install_cli(runtime)
         plugins = locations["config"] / "omarchy/plugins"
         plugins.mkdir(parents=True, exist_ok=True)
         dest = plugins / PLUGIN_ID
@@ -136,10 +166,11 @@ main()
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Install the native Omarchy E16 topbar picker")
     parser.add_argument("--source", type=Path, help="Source checkout (defaults to this checkout)")
+    parser.add_argument("--build-native", action="store_true", help="Build decorations for the running compositor before enabling")
     parser.add_argument("--no-enable", action="store_true", help="Install without changing the bar layout")
     args = parser.parse_args(argv)
     try:
-        install(args.source, not args.no_enable)
+        install(args.source, not args.no_enable, args.build_native)
     except Exception as error:
         parser.exit(1, f"Error: {error}\n")
 

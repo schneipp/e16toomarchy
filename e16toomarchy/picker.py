@@ -282,12 +282,16 @@ def ensure_native(progress):
     stamp = runtime / "build/picker-abi.json"
     binary = runtime / "build/e16-decorations.so"
     old = read_json(stamp, {})
-    if binary.is_file() and old.get("abi") == abi and old.get("version") == VERSION:
+    source_hash = hashlib.sha256()
+    for filename in ("plugin/plugin.cpp", "plugin/frame.hpp", "Makefile"):
+        source_hash.update((runtime / filename).read_bytes())
+    signature = source_hash.hexdigest()
+    if binary.is_file() and old.get("abi") == abi and old.get("version") == VERSION and old.get("sources") == signature:
         return binary
     progress("building")
     # Compile local project source only, never theme code.
     run_build(runtime)
-    atomic_json(stamp, {"abi": abi, "version": VERSION})
+    atomic_json(stamp, {"abi": abi, "version": VERSION, "sources": signature})
     return binary
 
 
