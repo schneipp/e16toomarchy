@@ -28,13 +28,20 @@ Ui.Panel {
   property string applyScope: "full"
   property string query: ""
   property bool inactivePreview: false
+  property string previewMode: "gallery"
+  property var galleryMap: ({})
+  property string detailName: ""
+  readonly property var galleryItem: Model.galleryEntry(galleryMap, selectedTheme)
+  readonly property string currentError: launchError || (job.error && (!job.name || job.name === selectedTheme) ? job.error : "")
+  readonly property bool galleryLoading: selectedTheme !== "" && galleryItem.available === undefined
   property var job: ({ stage: "idle", busy: false })
   property bool launching: false
   property string launchError: ""
   readonly property bool busy: launching || job.busy === true
   readonly property var filtered: Model.filter(catalog, query)
   readonly property bool previewMatches: selectedTheme !== "" && job.name === selectedTheme && job.mode === colorMode && job.preview !== undefined && job.preview !== ""
-  readonly property string preview: previewMatches ? Model.previewUrl(inactivePreview ? job.inactive : job.preview, cacheHome) : ""
+  readonly property string preview: previewMode === "gallery" ? Model.galleryUrl(galleryItem.preview, cacheHome)
+    : previewMatches ? Model.previewUrl(inactivePreview ? job.inactive : job.preview, cacheHome) : ""
   readonly property color foreground: Commons.Color.popups.text
   readonly property color muted: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.65)
 
@@ -58,16 +65,47 @@ Ui.Panel {
     if (busy || !Model.validName(name)) return
     selectedTheme = name
     inactivePreview = false
-    previewDelay.restart()
+    previewMode = "gallery"
+    launchError = ""
+    detailDelay.restart()
   }
+  function acceptGallery(raw) {
+    var item = Model.parseGallery(raw)
+    if (!item) return
+    var next = Object.assign({}, root.galleryMap)
+    next[item.name] = item
+    root.galleryMap = next
+  }
+  function fetchSelected() {
+    if (!root.selectedTheme || galleryProcess.running) return
+    root.detailName = root.selectedTheme
+    galleryProcess.command = [python, backend, "thumbnail", root.selectedTheme]
+    galleryProcess.running = true
+  }
+  function fetchVisible() {
+    if (!root.opened || thumbnailsProcess.running || !panel.loadedContent) return
+    var list = panel.loadedContent.listView
+    var names = Model.visibleThemes(root.filtered, list.contentY, list.height, Commons.Style.space(58) + list.spacing)
+      .filter(function(name) { return Model.galleryEntry(root.galleryMap, name).available === undefined })
+    if (names.length === 0) return
+    thumbnailsProcess.command = [python, backend, "thumbnails"].concat(names)
+    thumbnailsProcess.running = true
+  }
+  function showFrame() {
+    root.previewMode = "frame"
+    if (!root.previewMatches && root.selectedTheme && !root.busy) root.launch("prepare")
+  }
+  onFilteredChanged: thumbnailsDelay.restart()
   onOpenedChanged: {
     if (opened) {
       statusFile.reload()
       recovery.running = true
       if (catalog.length === 0) fetchCatalog(false)
+      thumbnailsDelay.restart()
+      if (selectedTheme) detailDelay.restart()
     }
   }
-  onColorModeChanged: if (selectedTheme && !busy) previewDelay.restart()
+  onColorModeChanged: if (selectedTheme && !busy && previewMode === "frame") previewDelay.restart()
 
   FileView {
     id: statusFile
@@ -88,6 +126,26 @@ Ui.Panel {
       }
     }
   }
+  Process {
+    id: galleryProcess
+    stdout: StdioCollector { onStreamFinished: root.acceptGallery(text) }
+    onExited: function(code) {
+      if (code !== 0) root.acceptGallery(JSON.stringify({name: root.detailName, available: false}))
+      if (root.selectedTheme !== root.detailName) detailDelay.restart()
+    }
+  }
+  Process {
+    id: thumbnailsProcess
+    stdout: SplitParser { onRead: function(data) { root.acceptGallery(data) } }
+    onExited: function(code) {
+      if (code !== 0) {
+        for (var i = 3; i < command.length; i++) root.acceptGallery(JSON.stringify({name: command[i], available: false}))
+      }
+      thumbnailsDelay.restart()
+    }
+  }
+  Timer { id: detailDelay; interval: 120; onTriggered: root.fetchSelected() }
+  Timer { id: thumbnailsDelay; interval: 150; onTriggered: root.fetchVisible() }
   Process {
     id: recovery
     command: [root.python, root.backend, "status"]
@@ -153,6 +211,7 @@ Ui.Panel {
     content: Item {
       id: body
       property alias searchField: search
+      property alias listView: themeList
       anchors.fill: parent
       Keys.onEscapePressed: root.close()
 
@@ -226,6 +285,8 @@ Ui.Panel {
               boundsBehavior: Flickable.StopAtBounds
               Controls.ScrollBar.vertical: Controls.ScrollBar { }
               keyNavigationEnabled: true
+              onContentYChanged: thumbnailsDelay.restart()
+              onHeightChanged: thumbnailsDelay.restart()
               activeFocusOnTab: true
               Keys.onReturnPressed: if (currentIndex >= 0 && currentIndex < count) root.choose(root.filtered[currentIndex])
               Keys.onEscapePressed: search.forceActiveFocus()
@@ -233,15 +294,29 @@ Ui.Panel {
                 required property string modelData
                 required property int index
                 width: themeList.width
-                height: Commons.Style.space(34)
+                height: Commons.Style.space(58)
                 radius: Commons.Style.cornerRadius
                 color: modelData === root.selectedTheme ? Qt.rgba(Commons.Color.accent.r, Commons.Color.accent.g, Commons.Color.accent.b, 0.22)
                   : hover.hovered || (themeList.activeFocus && themeList.currentIndex === index) ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.08) : "transparent"
+                Image {
+                  id: rowThumbnail
+                  anchors.left: parent.left
+                  anchors.leftMargin: Commons.Style.space(5)
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: Commons.Style.space(68)
+                  height: Commons.Style.space(46)
+                  source: Model.galleryUrl(Model.galleryEntry(root.galleryMap, modelData).thumbnail, root.cacheHome)
+                  fillMode: Image.PreserveAspectFit
+                  asynchronous: true
+                  sourceSize.width: 144
+                }
                 Text {
                   textFormat: Text.PlainText
-                  anchors.fill: parent
-                  anchors.margins: Commons.Style.space(8)
-                  verticalAlignment: Text.AlignVCenter
+                  anchors.left: rowThumbnail.right
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  anchors.leftMargin: Commons.Style.space(7)
+                  anchors.rightMargin: Commons.Style.space(5)
                   text: modelData
                   color: root.foreground
                   font.family: Commons.Style.font.family
@@ -301,7 +376,9 @@ Ui.Panel {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 visible: root.preview === ""
-                text: root.busy ? strings.t("stage." + root.job.stage) : strings.t("choose")
+                text: root.previewMode === "gallery" && root.selectedTheme
+                  ? strings.t(root.galleryLoading ? "galleryLoading" : "galleryMissing")
+                  : root.busy ? strings.t("stage." + root.job.stage) : strings.t("choose")
                 color: "#cdd6f4"
                 font.family: Commons.Style.font.family
                 font.pixelSize: Commons.Style.font.bodySmall
@@ -309,6 +386,23 @@ Ui.Panel {
             }
             RowLayout {
               Layout.fillWidth: true
+              Ui.Button {
+                text: strings.t("gallery")
+                selected: root.previewMode === "gallery"
+                focusable: true
+                onClicked: { root.previewMode = "gallery"; if (root.selectedTheme) detailDelay.restart() }
+              }
+              Ui.Button {
+                text: strings.t("convertedFrame")
+                selected: root.previewMode === "frame"
+                enabled: !!root.selectedTheme && !root.busy
+                focusable: true
+                onClicked: root.showFrame()
+              }
+            }
+            RowLayout {
+              Layout.fillWidth: true
+              visible: root.previewMode === "frame"
               Ui.Button { text: strings.t("active"); selected: !root.inactivePreview; focusable: true; onClicked: root.inactivePreview = false }
               Ui.Button { text: strings.t("inactive"); selected: root.inactivePreview; focusable: true; onClicked: root.inactivePreview = true }
               Item { Layout.fillWidth: true }
@@ -338,8 +432,11 @@ Ui.Panel {
           Text {
             textFormat: Text.PlainText
             Layout.fillWidth: true
-            text: root.launchError || root.job.error || root.catalogError || (root.busy && root.launching ? strings.t("stage.queued") : strings.t("stage." + root.job.stage))
-            color: root.launchError || root.job.error ? Commons.Color.urgent : root.foreground
+            text: root.currentError || root.catalogError || (root.busy && root.launching ? strings.t("stage.queued")
+              : root.busy ? strings.t("stage." + root.job.stage)
+              : root.previewMode === "gallery" && root.selectedTheme ? strings.t(root.galleryLoading ? "galleryLoading" : root.galleryItem.available ? "galleryReady" : "galleryMissing")
+              : strings.t("stage." + root.job.stage))
+            color: root.currentError ? Commons.Color.urgent : root.foreground
             wrapMode: Text.WordWrap
             maximumLineCount: 3
             elide: Text.ElideRight
@@ -355,7 +452,8 @@ Ui.Panel {
           Text {
             textFormat: Text.PlainText
             Layout.fillWidth: true
-            text: root.busy ? strings.t("background") : root.previewMatches && root.job.warnings && root.job.warnings.length ? strings.t("warning") : strings.t("notice")
+            text: root.busy ? strings.t("background") : root.previewMode === "gallery" && root.galleryItem.available ? strings.t("galleryAttribution")
+              : root.previewMode === "frame" && root.previewMatches && root.job.warnings && root.job.warnings.length ? strings.t("warning") : strings.t("notice")
             color: root.muted
             wrapMode: Text.WordWrap
             font.family: Commons.Style.font.family
@@ -384,7 +482,7 @@ Ui.Panel {
             iconText: "󰄬"
             bordered: true
             selected: true
-            enabled: !root.busy && root.previewMatches
+            enabled: !root.busy && Model.validName(root.selectedTheme)
             focusable: true
             onClicked: root.launch("apply")
           }

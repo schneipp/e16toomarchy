@@ -41,3 +41,27 @@ function filter(names, query) {
   var needle = String(query || "").toLowerCase()
   return names.filter(function(name) { return name.toLowerCase().indexOf(needle) !== -1 })
 }
+
+function galleryUrl(path, cacheRoot) {
+  if (typeof path !== "string" || path.indexOf(cacheRoot + "/gallery/") !== 0 || path.indexOf("..") !== -1 || path.indexOf("\\") !== -1) return ""
+  var relative = path.slice((cacheRoot + "/gallery/").length)
+  if (!/^[a-f0-9]{24}\/(preview|thumb)\.jpg$/.test(relative)) return ""
+  return "file://" + encodeURI(path).replace(/#/g, "%23").replace(/\?/g, "%3F")
+}
+function parseGallery(raw) {
+  if (!raw || raw.length > 16384) return null
+  try {
+    var item = JSON.parse(raw)
+    if (!validName(item.name)) return null
+    return {name: item.name, available: item.available === true,
+      preview: plain(item.preview, 4096), thumbnail: plain(item.thumbnail, 4096)}
+  } catch (e) { return null }
+}
+function galleryEntry(map, name) {
+  return map && Object.prototype.hasOwnProperty.call(map, name) ? map[name] : ({})
+}
+function visibleThemes(names, offset, height, rowHeight) {
+  var start = Math.max(0, Math.floor(offset / Math.max(1, rowHeight)))
+  var count = Math.min(12, Math.max(1, Math.ceil(height / Math.max(1, rowHeight))) + 2)
+  return names.slice(start, start + count)
+}

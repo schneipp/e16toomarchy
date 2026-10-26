@@ -37,11 +37,11 @@ After installing the converter from this checkout, run:
 .venv/bin/e16toomarchy install-picker
 ```
 
-A palette icon appears on the **right side of your Omarchy topbar**. Click it, search or select an E16 theme, inspect its focused/unfocused frame preview, and click **Apply theme**. The picker downloads the archive, converts it, installs it under your user themes, builds the native decoration plugin for your compositor when needed, and activates it. No terminal is needed after setup.
+A palette icon appears on the **right side of your Omarchy topbar**. Click it, browse the gallery thumbnails, select a theme for a quick screenshot preview, and click **Apply theme**. Use **Converted frame** for an optional focused/unfocused preview of the actual converted window frame. The picker downloads the archive, converts it, installs it under your user themes, builds the native decoration plugin for your compositor when needed, and activates it. No terminal is needed after setup.
 
 Choose **Window frames only** to keep your current colors and wallpaper. **Original / Dark / Light colors** control palette conversion. **Restore previous look** disables the E16 integration and restores the previous palette when the picker changed it. The picker does not replace a different theme you subsequently chose elsewhere.
 
-Jobs run in detached workers and keep going if the popup closes or the shell reloads. The UI shows progress and errors. The catalog refreshes on demand and is cached for a day; only selected themes are downloaded. Previews and converted themes are reused. Downloads use the fixed HTTPS catalog, and source configuration is never executed.
+Jobs run in detached workers and keep going if the popup closes or the shell reloads. The UI shows progress and errors. The catalog refreshes on demand and is cached for a day. Gallery screenshots load for visible rows and the selected theme, with at most two batch download workers, and are cached as small local JPEGs. Browsing does not download or convert theme archives; that happens only on **Apply** or **Converted frame**. Missing screenshots do not prevent applying a theme. Previews and converted themes are reused. Downloads use the fixed HTTPS catalog, and source configuration is never executed.
 
 Installation creates an independent Python environment and builds the frame preview renderer. It requires internet for Pillow on the first install, plus the native build dependencies below. The Hyprland adapter still requires **0.56.2 with matching development headers**. It does not install system packages or use sudo. Installation adds the topbar button but does not change the active theme.
 

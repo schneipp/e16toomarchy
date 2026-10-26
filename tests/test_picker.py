@@ -128,6 +128,22 @@ class PickerTests(unittest.TestCase):
             command.assert_not_called()
         self.assertFalse(picker.read_json(state / 'active.json')['enabled'])
 
+    def test_installed_ui_uses_new_urls_when_qml_or_model_changes(self):
+        from e16toomarchy.picker_install import version_ui
+        entries = []
+        for index, code in enumerate(('Item {}', 'Item { property bool fresh: true }')):
+            stage = Path(self.tmp.name) / str(index)
+            stage.mkdir()
+            (stage / 'manifest.json').write_text(json.dumps({'entryPoints': {'barWidget': 'Picker.qml'}}))
+            (stage / 'Picker.qml').write_text(code)
+            (stage / 'Model.js').write_text('function safe() { return true }')
+            version_ui(stage)
+            entry = json.loads((stage / 'manifest.json').read_text())['entryPoints']['barWidget']
+            self.assertEqual((stage / entry).read_text(), code)
+            self.assertTrue((stage / entry).with_name('Model.js').is_file())
+            entries.append(entry)
+        self.assertNotEqual(entries[0], entries[1])
+
     def test_current_theme_normalizes_cli_display_names(self):
         with patch.object(picker, 'run_command', return_value='Tokyo Night'):
             self.assertEqual(picker.current_theme(), 'tokyo-night')

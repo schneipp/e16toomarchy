@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
 import fcntl
 import hashlib
 import json
@@ -94,21 +93,28 @@ def theme_url(name):
     return CATALOG + quote(valid_name(name), safe="") + ".etheme"
 
 
+def allowed_source(url):
+    parsed = urlparse(url)
+    decoded = unquote(parsed.path)
+    return (parsed.scheme == "https" and parsed.netloc == "themes.effx.us"
+            and decoded.startswith(("/packages/e16/", "/preview/e16/"))
+            and ".." not in Path(decoded).parts and "\\" not in decoded
+            and not parsed.query and not parsed.fragment)
+
+
 class CatalogRedirects(HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, msg, headers, newurl):
-        parsed = urlparse(newurl)
-        if parsed.scheme != "https" or parsed.netloc != "themes.effx.us" or not parsed.path.startswith("/packages/e16/"):
+        if not allowed_source(newurl):
             raise ValueError("Theme server redirected outside its HTTPS catalog")
         return super().redirect_request(request, fp, code, msg, headers, newurl)
 
 
-def fetch(url, target, limit=MAX_BYTES):
+def fetch(url, target, limit=MAX_BYTES, timeout=30):
     """The picker only fetches from its fixed HTTPS catalog, including redirects."""
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.netloc != "themes.effx.us" or not parsed.path.startswith("/packages/e16/"):
+    if not allowed_source(url):
         raise ValueError("Unsupported theme source")
     opener = build_opener(CatalogRedirects())
-    with opener.open(Request(url, headers={"User-Agent": "e16toomarchy/" + VERSION}), timeout=30) as response:
+    with opener.open(Request(url, headers={"User-Agent": "e16toomarchy/" + VERSION}), timeout=timeout) as response:
         total = 0
         with target.open("wb") as out:
             while block := response.read(65536):
@@ -492,6 +498,10 @@ def main(argv=None):
     cat = sub.add_parser("catalog")
     cat.add_argument("--refresh", action="store_true")
     sub.add_parser("status")
+    thumb = sub.add_parser("thumbnail")
+    thumb.add_argument("name")
+    batch = sub.add_parser("thumbnails")
+    batch.add_argument("names", nargs="+")
     for command in ("start", "run"):
         p = sub.add_parser(command)
         if command == "run":
@@ -507,6 +517,13 @@ def main(argv=None):
             result = catalog(args.refresh)
         elif args.command == "status":
             result = status()
+        elif args.command == "thumbnail":
+            from .gallery import thumbnail
+            result = thumbnail(args.name)
+        elif args.command == "thumbnails":
+            from .gallery import thumbnails
+            thumbnails(args.names)
+            return
         elif args.command == "start":
             result = start(args.action, args.name, args.mode, args.kind)
         else:

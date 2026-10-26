@@ -5,7 +5,7 @@
   "search": "Search classic themes…",
   "refresh": "Refresh catalog",
   "empty": "No matching themes",
-  "choose": "Choose a theme to preview its original frame",
+  "choose": "Choose a theme for a quick gallery preview",
   "apply": "Apply theme",
   "framesApply": "Apply frames",
   "restore": "Restore previous look",
@@ -17,10 +17,13 @@
   "modeLight": "Light colors",
   "active": "Focused",
   "inactive": "Unfocused",
-  "notice": "Selected themes download from themes.effx.us and are cached locally.",
+  "notice": "Gallery images are cached locally. Theme archives download when you apply or request a converted frame.",
   "background": "You can close this picker. The operation will continue in the background.",
   "warning": "Some original features are unsupported. Details are saved with the converted theme.",
-  "count": {"one": "%1 theme", "other": "%1 themes"},
+  "count": {
+    "one": "%1 theme",
+    "other": "%1 themes"
+  },
   "loading": "Loading the theme catalog…",
   "launchError": "Could not start the theme worker. Reinstall the picker to repair its runtime.",
   "stage.idle": "Select a theme to get started",
@@ -38,5 +41,11 @@
   "stage.ready": "Preview ready",
   "stage.applied": "Your E16 theme is active",
   "stage.restored": "Your previous appearance is restored",
-  "stage.failed": "The operation could not finish"
+  "stage.failed": "The operation could not finish",
+  "gallery": "Gallery",
+  "convertedFrame": "Converted frame",
+  "galleryLoading": "Loading gallery preview…",
+  "galleryMissing": "No gallery screenshot available. You can still preview the converted frame.",
+  "galleryReady": "Gallery preview ready",
+  "galleryAttribution": "Original E16 screenshot from themes.effx.us. The converted desktop may differ."
 }

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,25 @@ import time
 import venv
 
 from .picker import PLUGIN_ID, VERSION, backup, lock_fd, paths, run_command
+
+
+def version_ui(stage):
+    """Use content-specific component URLs: Qt may retain old URLs across shell rescans."""
+    manifest_path = stage / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    files = sorted(path for path in stage.rglob("*") if path.is_file() and path != manifest_path)
+    digest = hashlib.sha256()
+    for path in files:
+        digest.update(str(path.relative_to(stage)).encode())
+        digest.update(path.read_bytes())
+    directory = "ui-" + digest.hexdigest()[:16]
+    target = stage / directory
+    for path in files:
+        dest = target / path.relative_to(stage)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        path.rename(dest)
+    manifest["entryPoints"] = {key: directory + "/" + value for key, value in manifest["entryPoints"].items()}
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
 
 def install(source=None, enable=True):
@@ -67,6 +87,8 @@ main()
         with tempfile.TemporaryDirectory(prefix=".e16-stage-", dir=plugins) as tmp:
             stage = Path(tmp) / PLUGIN_ID
             shutil.copytree(source / "omarchy-plugin", stage)
+            version_ui(stage)
+            run_command(["omarchy", "plugin", "validate", stage])
             old = dest.with_name(".e16-themes-previous")
             if old.exists():
                 shutil.rmtree(old)
