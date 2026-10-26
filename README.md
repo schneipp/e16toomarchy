@@ -2,7 +2,7 @@
 
 Bring classic Enlightenment E16 themes to Omarchy, including their **original bitmap window decorations**.
 
-The Python converter exports a color palette, wallpapers, and an inert description of E16's frame parts. The C++ Hyprland plugin renders those original assets around real windows: textured titlebars, custom buttons, active/inactive/hover/pressed states, transparent shapes, and resize borders. An offline preview tool uses the same rendering code as the plugin.
+The Python converter exports a color palette, wallpapers, and an inert description of E16's frame parts. The C++ Hyprland plugin renders those original assets around real windows: textured titlebars, custom buttons, active/inactive/hover/pressed states, transparent shapes, and resize borders. A native Omarchy topbar picker handles browsing, previewing, conversion and activation in the background. An offline preview tool uses the same rendering code as the plugin.
 
 ## Install the converter
 
@@ -28,6 +28,33 @@ Sources may be a [catalog theme name](https://themes.effx.us/packages/e16/), HTT
 ```
 
 Output defaults to `converted/<theme-name>/`. Existing output is never overwritten; choose a new name or parent directory to regenerate. `--mode auto|dark|light` controls the app palette. `--no-wallpapers` creates a solid background. `--no-decorations` exports only colors and wallpapers. Local conversion works offline.
+
+## Topbar theme picker
+
+After installing the converter from this checkout, run:
+
+```sh
+.venv/bin/e16toomarchy install-picker
+```
+
+A palette icon appears on the **right side of your Omarchy topbar**. Click it, search or select an E16 theme, inspect its focused/unfocused frame preview, and click **Apply theme**. The picker downloads the archive, converts it, installs it under your user themes, builds the native decoration plugin for your compositor when needed, and activates it. No terminal is needed after setup.
+
+Choose **Window frames only** to keep your current colors and wallpaper. **Original / Dark / Light colors** control palette conversion. **Restore previous look** disables the E16 integration and restores the previous palette when the picker changed it. The picker does not replace a different theme you subsequently chose elsewhere.
+
+Jobs run in detached workers and keep going if the popup closes or the shell reloads. The UI shows progress and errors. The catalog refreshes on demand and is cached for a day; only selected themes are downloaded. Previews and converted themes are reused. Downloads use the fixed HTTPS catalog, and source configuration is never executed.
+
+Installation creates an independent Python environment and builds the frame preview renderer. It requires internet for Pillow on the first install, plus the native build dependencies below. The Hyprland adapter still requires **0.56.2 with matching development headers**. It does not install system packages or use sudo. Installation adds the topbar button but does not change the active theme.
+
+On the first Apply, the picker backs up `~/.config/hypr/hyprland.lua` and adds a small loader for its own generated integration. This makes decorations survive login and configuration reloads. The integration removes native border/rounding and disables hyprbars only while E16 frames are selected. A full theme selection follows the current Omarchy theme; selecting an ordinary theme disables that integration on reload. Failed activation restores the preceding integration and palette.
+
+The install command is also the update command after updating the source checkout. `--no-enable` installs without changing the bar layout. To move or hide the button:
+
+```sh
+omarchy bar move schneipp.e16-themes --section centerEnd
+omarchy plugin disable schneipp.e16-themes
+```
+
+Use **Restore previous look** before disabling the picker if you also want to remove its decorations. See [picker development notes](docs/picker.md) for installation paths, logs, and recovery.
 
 ## Build the decorations
 
@@ -134,7 +161,7 @@ make test
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Ten tests cover archive safety, palette readability, wallpaper export, original image states, shape masks, shared renderer pixels, anchor geometry, hit testing, malformed manifests and action filtering. GitHub Actions builds and tests the converter and offline renderer; plugin compilation requires matching local Hyprland headers.
+Tests cover archive safety, palette readability, wallpaper export, original image states, shape masks, shared renderer pixels, anchor geometry, hit testing, malformed manifests, picker jobs, source validation, activation rollback, restoration and plain-text UI sinks. JavaScript checks validate bounded models and local-only preview URLs. GitHub Actions tests the converter, picker backend/model and offline renderer; plugin compilation requires matching local Hyprland headers.
 
 Validated with real BrushedMetal, AlienConsole, and Aqua archives. Live tests in an isolated Hyprland 0.56.2 session verified frame rendering, maximize, titlebar dragging, border resize, close/cancelled close, minimize, automatic theme replacement, invalid-theme recovery and clean unload. See [development notes](docs/decorations.md) for architecture and compatibility.
 

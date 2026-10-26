@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "e16toomarchy"
-version = "0.2.0"
-description = "Convert Enlightenment E16 bitmap themes to Omarchy palettes and wallpapers"
+version = "0.3.0"
+description = "Convert Enlightenment E16 bitmap themes to Omarchy themes with a native topbar picker"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"

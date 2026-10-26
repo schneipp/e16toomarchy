@@ -282,6 +282,8 @@ class Links(HTMLParser):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Convert E16 themes into Omarchy colors, wallpapers and original bitmap window frames.")
     sub = parser.add_subparsers(dest="command", required=True)
+    installer = sub.add_parser("install-picker", help="Install and enable the Omarchy topbar theme picker")
+    installer.add_argument("--no-enable", action="store_true", help="Install without changing the bar layout")
     listing = sub.add_parser("list", help="List themes from themes.effx.us")
     listing.add_argument("--filter", default="", help="Case-insensitive name filter")
     conv = sub.add_parser("convert", help="Convert a directory, tar archive, URL, or catalog theme name")
@@ -293,6 +295,13 @@ def main(argv=None):
     conv.add_argument("--border", help="E16 border class to recreate (default: DEFAULT or first available)")
     conv.add_argument("--no-decorations", action="store_true", help="Export only colors and wallpapers")
     args = parser.parse_args(argv)
+    if args.command == "install-picker":
+        from .picker_install import install
+        try:
+            install(enable=not args.no_enable)
+        except Exception as error:
+            parser.exit(1, f"Error: {error}\n")
+        return
     try:
         with tempfile.TemporaryDirectory(prefix="e16toomarchy-") as tmp:
             work = Path(tmp)

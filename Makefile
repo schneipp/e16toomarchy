@@ -24,6 +24,7 @@ build/e16-frame-test: tests/frame_test.cpp plugin/frame.hpp | build
 
 test: preview build/e16-frame-test
 	$(PYTHON) -m unittest discover -s tests -v
+	@if command -v node >/dev/null 2>&1; then node tests/picker_model_test.js; else echo "Node unavailable; skipped picker JavaScript checks"; fi
 
 clean:
 	rm -rf build

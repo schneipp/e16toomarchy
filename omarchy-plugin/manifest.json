@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "schneipp.e16-themes",
+  "name": "E16 Themes",
+  "version": "0.3.0",
+  "author": "schneipp",
+  "description": "Browse, preview and apply classic Enlightenment themes with their original window frames",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "Picker.qml"},
+  "barWidget": {
+    "displayName": "E16 Themes",
+    "description": "Classic Enlightenment theme picker",
+    "category": "Appearance",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
