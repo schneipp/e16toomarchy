@@ -24,6 +24,20 @@ The installer handles missing build packages through Omarchy, creates an isolate
 
 Requires Omarchy with **Hyprland 0.56.2**; matching headers are checked automatically. The installer does not upgrade your compositor. [Installer options and details](docs/install.md).
 
+## Screenshots
+
+Original E16 bitmap decorations around real Omarchy windows:
+
+![Blue metallic E16 window decorations around terminal and Obsidian windows on Omarchy](docs/assets/screenhot-01.png)
+
+Browse gallery previews and apply colors, wallpaper and frames together, or keep your current desktop and change only the frames:
+
+![E16 theme picker with gallery thumbnails, a theme preview, and the window frames only option](docs/assets/screenhot-02.png)
+
+Switch to a completely different frame style:
+
+![Alien-inspired E16 window decorations with sculpted purple titlebars on Omarchy](docs/assets/screenhot-03.png)
+
 ## Manual converter install (optional)
 
 Requires Python 3.11+ and Pillow.
